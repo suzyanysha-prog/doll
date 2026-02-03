@@ -17,24 +17,132 @@
       </div>
     </div>
     <nav>
+      <button id="settingsMenuBtn" aria-label="settings">⚙️</button>
       <button id="themeToggle" aria-label="toggle theme">✨</button>
+      <button id="userProfileBtn" aria-label="user profile">👤</button>
     </nav>
   </header>
 
   <main class="grid">
     <section class="card">
-      <h2>Study Timer</h2>
-      <div class="timer-presets">
-        <button data-min="25" class="preset active">Pomodoro 25</button>
-        <button data-min="15" class="preset">Focus 15</button>
-        <button data-min="50" class="preset">Deep 50</button>
-        <button data-min="5" class="preset">Short Break 5</button>
+      <h2>🍅 Pomodoro Task Timer</h2>
+      
+      <!-- Task Selection from List -->
+      <div class="pomo-task-section">
+        <label style="font-weight: 600; display: block; margin-bottom: 8px;">📋 Select Task:</label>
+        <div id="pomodoroTaskList" class="pomo-task-list">
+          <!-- Populated by JS -->
+        </div>
+        <div class="pomo-or-divider">or create new:</div>
+        <div class="pomo-input-group">
+          <input type="text" id="pomodoroTaskInput" placeholder="Quick task name..." maxlength="50" />
+          <button id="pomodoroTaskBtn">✨ Set</button>
+        </div>
+        <div id="pomodoroTaskDisplay" class="pomo-task-display">No task selected</div>
       </div>
-      <div class="big-timer" id="studyDisplay">25:00</div>
+
+      <!-- Cat Display -->
+      <div class="cat-container">
+        <div class="pixel-cat studying" id="studyCat">
+          <div class="pixel-grid">
+            <!-- Head row 1 -->
+            <div class="pixel ear-l"></div>
+            <div class="pixel"></div>
+            <div class="pixel"></div>
+            <div class="pixel"></div>
+            <div class="pixel ear-r"></div>
+            
+            <!-- Head row 2 -->
+            <div class="pixel"></div>
+            <div class="pixel head"></div>
+            <div class="pixel head"></div>
+            <div class="pixel head"></div>
+            <div class="pixel"></div>
+            
+            <!-- Head row 3 -->
+            <div class="pixel"></div>
+            <div class="pixel head"></div>
+            <div class="pixel eye-l"></div>
+            <div class="pixel head"></div>
+            <div class="pixel"></div>
+            
+            <!-- Head row 4 -->
+            <div class="pixel"></div>
+            <div class="pixel head"></div>
+            <div class="pixel eye-r"></div>
+            <div class="pixel head"></div>
+            <div class="pixel"></div>
+            
+            <!-- Head row 5 -->
+            <div class="pixel"></div>
+            <div class="pixel head"></div>
+            <div class="pixel mouth"></div>
+            <div class="pixel head"></div>
+            <div class="pixel"></div>
+            
+            <!-- Body row 1 -->
+            <div class="pixel"></div>
+            <div class="pixel body"></div>
+            <div class="pixel body"></div>
+            <div class="pixel body"></div>
+            <div class="pixel"></div>
+            
+            <!-- Body row 2 -->
+            <div class="pixel body"></div>
+            <div class="pixel body"></div>
+            <div class="pixel body"></div>
+            <div class="pixel body"></div>
+            <div class="pixel body"></div>
+            
+            <!-- Body row 3 -->
+            <div class="pixel body"></div>
+            <div class="pixel body"></div>
+            <div class="pixel body"></div>
+            <div class="pixel body"></div>
+            <div class="pixel body"></div>
+            
+            <!-- Tail -->
+            <div class="pixel"></div>
+            <div class="pixel"></div>
+            <div class="pixel tail"></div>
+            <div class="pixel tail"></div>
+            <div class="pixel tail"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Session Type & Timer Display -->
+      <div id="pomodoroSessionInfo" class="pomo-session-info">
+        <span id="pomodoroPhase" class="pomo-phase-label">🎯 Work Session</span>
+        <div id="pomodoroSessionCount" class="pomo-session-count">Session 1</div>
+      </div>
+      
+      <div class="big-timer" id="studyDisplay">30:00</div>
+
+      <!-- Timer Controls -->
       <div class="controls">
-        <button id="studyStart">Start</button>
-        <button id="studyPause">Pause</button>
-        <button id="studyReset">Reset</button>
+        <button id="studyStart">▶️ Start</button>
+        <button id="studyPause">⏸ Pause</button>
+        <button id="studyReset">↻ Reset</button>
+        <button id="pomodoroTaskDone" class="btn-success">✓ Done</button>
+      </div>
+
+      <!-- Pomodoro Progress -->
+      <div id="pomodoroProgress" class="pomo-progress">
+        <div class="pomo-stats">
+          <div class="pomo-stat">
+            <span class="pomo-stat-label">Sessions Today</span>
+            <span id="pomodoroSessionsToday" class="pomo-stat-value">0</span>
+          </div>
+          <div class="pomo-stat">
+            <span class="pomo-stat-label">Focus Time</span>
+            <span id="pomodoroFocusTime" class="pomo-stat-value">0h</span>
+          </div>
+          <div class="pomo-stat">
+            <span class="pomo-stat-label">Break Time</span>
+            <span id="pomodoroBreakTime" class="pomo-stat-value">0m</span>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -154,6 +262,163 @@
   </main>
 
   <footer class="foot">Made with pastel vibes • stay glowing ✨</footer>
+
+  <!-- Login Modal -->
+  <div id="loginModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Welcome to Beauty Study 🌸</h2>
+        <button class="modal-close" id="closeLoginModal">&times;</button>
+      </div>
+      <div class="modal-tabs">
+        <button class="modal-tab-btn active" data-tab="login">Login</button>
+        <button class="modal-tab-btn" data-tab="signup">Sign Up</button>
+      </div>
+      
+      <!-- Login Tab -->
+      <div class="modal-tab-content active" id="loginTab">
+        <form id="loginForm">
+          <div class="form-group">
+            <label for="loginEmail">Email:</label>
+            <input type="email" id="loginEmail" placeholder="your@email.com" required />
+          </div>
+          <div class="form-group">
+            <label for="loginPassword">Password:</label>
+            <input type="password" id="loginPassword" placeholder="Enter password" required />
+          </div>
+          <button type="submit" class="btn-primary">Login</button>
+        </form>
+      </div>
+
+      <!-- Sign Up Tab -->
+      <div class="modal-tab-content" id="signupTab">
+        <form id="signupForm">
+          <div class="form-group">
+            <label for="signupName">Name:</label>
+            <input type="text" id="signupName" placeholder="Your name" required />
+          </div>
+          <div class="form-group">
+            <label for="signupEmail">Email:</label>
+            <input type="email" id="signupEmail" placeholder="your@email.com" required />
+          </div>
+          <div class="form-group">
+            <label for="signupPassword">Password:</label>
+            <input type="password" id="signupPassword" placeholder="Create password" required />
+          </div>
+          <div class="form-group">
+            <label for="signupGoal">Study Goal (hours/week):</label>
+            <input type="number" id="signupGoal" placeholder="20" min="1" max="100" value="20" />
+          </div>
+          <button type="submit" class="btn-primary">Sign Up</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Settings ⚙️</h2>
+        <button class="modal-close" id="closeSettingsModal">&times;</button>
+      </div>
+
+      <div class="settings-section">
+        <h3>⏱️ Pomodoro Settings</h3>
+        <div class="form-group">
+          <label for="workDuration">Work Duration (minutes):</label>
+          <input type="number" id="workDuration" min="1" max="60" value="30" />
+        </div>
+        <div class="form-group">
+          <label for="breakDuration">Break Duration (minutes):</label>
+          <input type="number" id="breakDuration" min="1" max="30" value="5" />
+        </div>
+        <div class="form-group">
+          <label for="longBreakDuration">Long Break (minutes):</label>
+          <input type="number" id="longBreakDuration" min="1" max="60" value="30" />
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>🎯 Study Goals</h3>
+        <div class="form-group">
+          <label for="weeklyGoal">Weekly Study Goal (hours):</label>
+          <input type="number" id="weeklyGoal" min="1" max="100" value="20" />
+        </div>
+        <div class="form-group">
+          <label for="dailyTaskGoal">Daily Task Goal:</label>
+          <input type="number" id="dailyTaskGoal" min="1" max="50" value="5" />
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>🎨 Theme & Display</h3>
+        <div class="form-group">
+          <label for="theme">Theme:</label>
+          <select id="theme">
+            <option value="light">Light (Default)</option>
+            <option value="dark">Dark</option>
+            <option value="pink">Extra Pink</option>
+          </select>
+        </div>
+        <div class="form-group checkbox">
+          <input type="checkbox" id="soundEnabled" checked />
+          <label for="soundEnabled">Enable Sound Notifications</label>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>👤 Account</h3>
+        <div class="account-info">
+          <p>Logged in as: <strong id="currentUserDisplay">Guest</strong></p>
+        </div>
+        <button id="logoutBtn" class="btn-danger">Logout</button>
+      </div>
+
+      <div class="settings-actions">
+        <button id="savSettingsBtn" class="btn-primary">Save Settings</button>
+        <button id="resetSettingsBtn" class="btn-secondary">Reset to Defaults</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Profile Modal -->
+  <div id="profileModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Your Profile 👤</h2>
+        <button class="modal-close" id="closeProfileModal">&times;</button>
+      </div>
+
+      <div class="profile-card">
+        <div class="profile-avatar">👩‍💻</div>
+        <h3 id="profileName">Guest User</h3>
+        <p id="profileEmail">Not logged in</p>
+        
+        <div class="profile-stats">
+          <div class="profile-stat">
+            <span class="stat-label">Total Sessions</span>
+            <span class="stat-value" id="profileSessions">0</span>
+          </div>
+          <div class="profile-stat">
+            <span class="stat-label">Total Focus Time</span>
+            <span class="stat-value" id="profileFocusTime">0h</span>
+          </div>
+          <div class="profile-stat">
+            <span class="stat-label">Tasks Completed</span>
+            <span class="stat-value" id="profileTasksCompleted">0</span>
+          </div>
+        </div>
+
+        <div class="profile-achievements">
+          <h4>🏆 Achievements</h4>
+          <div id="achievementsList"></div>
+        </div>
+
+        <button id="editProfileBtn" class="btn-primary">Edit Profile</button>
+      </div>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>
