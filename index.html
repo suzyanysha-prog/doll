@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Beauty Study — Pastel Timer & Trackers</title>
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <div class="logo">🌸</div>
+      <div>
+        <h1>Beauty Study</h1>
+        <p class="tag">study timers, self-care & trackers — pastel pink vibes</p>
+      </div>
+    </div>
+    <nav>
+      <button id="themeToggle" aria-label="toggle theme">✨</button>
+    </nav>
+  </header>
+
+  <main class="grid">
+    <section class="card">
+      <h2>Study Timer</h2>
+      <div class="timer-presets">
+        <button data-min="25" class="preset active">Pomodoro 25</button>
+        <button data-min="15" class="preset">Focus 15</button>
+        <button data-min="50" class="preset">Deep 50</button>
+        <button data-min="5" class="preset">Short Break 5</button>
+      </div>
+      <div class="big-timer" id="studyDisplay">25:00</div>
+      <div class="controls">
+        <button id="studyStart">Start</button>
+        <button id="studyPause">Pause</button>
+        <button id="studyReset">Reset</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Self-Care Timers</h2>
+      <div class="mini-grid">
+        <div class="small-card">
+          <h3>Timed Skincare</h3>
+          <div class="small-timer" id="skincareDisplay">03:00</div>
+          <div class="controls">
+            <button data-t="180" class="startSmall" data-target="skincare">Start 3m</button>
+          </div>
+        </div>
+        <div class="small-card">
+          <h3>Timed Sleep (Nap)</h3>
+          <div class="small-timer" id="sleepDisplay">20:00</div>
+          <div class="controls">
+            <button data-t="1200" class="startSmall" data-target="sleep">Start 20m</button>
+          </div>
+        </div>
+        <div class="small-card">
+          <h3>Water Tracker</h3>
+          <div class="water">
+            <button id="waterDec">➖</button>
+            <div id="waterCount">0</div>
+            <button id="waterInc">➕</button>
+          </div>
+          <small>glasses today</small>
+        </div>
+        <div class="small-card">
+          <h3>Workout Generator</h3>
+          <div id="workoutOut">Quick full-body routine</div>
+          <div class="controls">
+            <button id="genWorkout">Generate ✨</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Tasks & Assignments</h2>
+      <form id="taskForm">
+        <input id="taskText" placeholder="New task or assignment" />
+        <input id="taskDue" type="date" />
+        <button type="submit">Add</button>
+      </form>
+      <ul id="taskList" class="list"></ul>
+    </section>
+
+    <section class="card">
+      <h2>Exam Prep Checklist</h2>
+      <div id="examList" class="list"></div>
+      <div class="controls">
+        <button id="addExamSample">Add Sample Plan</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">Made with pastel vibes • stay glowing ✨</footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
