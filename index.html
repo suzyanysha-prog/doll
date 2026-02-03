@@ -39,13 +39,69 @@
     </section>
 
     <section class="card">
+      <h2>Weekly Progress 📊</h2>
+      <div class="dashboard">
+        <div class="progress-item">
+          <div class="progress-header">
+            <span class="progress-label">📚 Study Hours</span>
+            <span class="progress-value" id="studyHours">0 hrs</span>
+          </div>
+          <div class="progress-bar-container">
+            <div class="progress-bar" id="studyBar"><span class="bar-text">0%</span></div>
+          </div>
+          <small>Goal: 20 hours/week</small>
+        </div>
+        <div class="progress-item">
+          <div class="progress-header">
+            <span class="progress-label">✅ Tasks Done</span>
+            <span class="progress-value" id="tasksCount">0</span>
+          </div>
+          <div class="progress-circle-container">
+            <div class="progress-circle" id="tasksCircle">
+              <svg viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="45" class="circle-bg"></circle>
+                <circle cx="50" cy="50" r="45" class="circle-progress" id="tasksProgress"></circle>
+                <text x="50" y="50" text-anchor="middle" dy="0.3em" id="tasksPercent">0%</text>
+              </svg>
+            </div>
+          </div>
+          <small>Goal: 15 tasks/week</small>
+        </div>
+        <div class="progress-item">
+          <div class="progress-header">
+            <span class="progress-label">💧 Water</span>
+            <span class="progress-value" id="waterGlasses">0/8</span>
+          </div>
+          <div class="progress-circle-container">
+            <div class="progress-circle" id="waterCircle">
+              <svg viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="45" class="circle-bg"></circle>
+                <circle cx="50" cy="50" r="45" class="circle-progress water-circle" id="waterProgress"></circle>
+                <text x="50" y="50" text-anchor="middle" dy="0.3em" id="waterPercent">0%</text>
+              </svg>
+            </div>
+          </div>
+          <small>Goal: 8 glasses/day</small>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
       <h2>Self-Care Timers</h2>
       <div class="mini-grid">
         <div class="small-card">
-          <h3>Timed Skincare</h3>
+          <div class="skincare-edit">
+            <input type="text" id="skincareRoutine" class="routine-name" value="Timed Skincare" maxlength="30" />
+            <div class="time-edit">
+              <label>Minutes:</label>
+              <input type="number" id="skincareMinutes" min="1" max="60" value="3" />
+            </div>
+          </div>
+          <h3 id="skincareTitle">Timed Skincare</h3>
           <div class="small-timer" id="skincareDisplay">03:00</div>
           <div class="controls">
-            <button data-t="180" class="startSmall" data-target="skincare">Start 3m</button>
+            <button id="startSkincare" class="startSmall" data-target="skincare">Start</button>
+            <button id="skincareEditBtn" class="editBtn">✏️ Edit</button>
           </div>
         </div>
         <div class="small-card">
@@ -70,6 +126,10 @@
           <div class="controls">
             <button id="genWorkout">Generate ✨</button>
           </div>
+        </div>
+        <div class="small-card">
+          <h3>Daily Streaks 🔥</h3>
+          <div id="streaksList"></div>
         </div>
       </div>
     </section>
