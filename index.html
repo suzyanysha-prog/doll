@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Beauty Study — Pastel Timer & Trackers</title>
+  <title>dolludy — Pastel Timer & Trackers</title>
   <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -12,16 +12,86 @@
     <div class="brand">
       <div class="logo">🌸</div>
       <div>
-        <h1>Beauty Study</h1>
+        <h1>dolludy</h1>
         <p class="tag">study timers, self-care & trackers — pastel pink vibes</p>
       </div>
     </div>
     <nav>
       <button id="settingsMenuBtn" aria-label="settings">⚙️</button>
+      <button id="largeTextBtn" aria-label="large print mode" title="Large Print Mode">🔤</button>
+      <button id="themeSwitcherBtn" aria-label="theme switcher" title="Change Theme">🎨</button>
       <button id="themeToggle" aria-label="toggle theme">✨</button>
       <button id="userProfileBtn" aria-label="user profile">👤</button>
+      <button id="roomsToggle" aria-label="study rooms" title="Study Rooms">🏘️</button>
     </nav>
   </header>
+
+  <!-- Theme Switcher Panel -->
+  <div id="themeSwitcherPanel" class="theme-switcher-panel">
+    <h3>🎨 Choose Your Vibe</h3>
+    <div class="theme-options">
+      <button class="theme-option" data-theme="pink" title="Pink (Default)">
+        <span class="theme-swatch" style="background: #ffb6d5;"></span>
+        <span>Blush Pink</span>
+      </button>
+      <button class="theme-option" data-theme="lavender" title="Lavender">
+        <span class="theme-swatch" style="background: #d8bfd8;"></span>
+        <span>Lavender</span>
+      </button>
+      <button class="theme-option" data-theme="mint" title="Mint">
+        <span class="theme-swatch" style="background: #a0ead9;"></span>
+        <span>Mint</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Study Rooms Panel -->
+  <div id="roomsPanel" class="rooms-panel">
+    <div class="rooms-header">
+      <h2>📚 Study Rooms</h2>
+      <button id="closeRoomsBtn" class="close-btn">✕</button>
+    </div>
+
+    <!-- User Identity Section -->
+    <div class="rooms-section">
+      <h3>👤 Your Profile</h3>
+      <input type="text" id="userNameInput" placeholder="Enter your name..." maxlength="30" class="user-input">
+      <button id="setUserBtn" class="btn-primary">Set Name</button>
+    </div>
+
+    <!-- Create Room -->
+    <div class="rooms-section">
+      <h3>➕ Create Study Room</h3>
+      <input type="text" id="roomNameInput" placeholder="Room name (e.g., Math Study)..." maxlength="40" class="user-input">
+      <button id="createRoomBtn" class="btn-primary">Create Room</button>
+    </div>
+
+    <!-- Join Room -->
+    <div class="rooms-section">
+      <h3>🔗 Join Room</h3>
+      <input type="text" id="inviteCodeInput" placeholder="Enter invite code..." maxlength="10" class="user-input">
+      <button id="joinRoomBtn" class="btn-primary">Join</button>
+    </div>
+
+    <!-- Current Room -->
+    <div id="currentRoomSection" class="rooms-section" style="display:none;">
+      <h3>🏠 Current Room</h3>
+      <div id="currentRoomInfo" class="current-room-info">
+        <div id="currentRoomName" style="font-weight:600; margin-bottom:8px;"></div>
+        <div id="inviteCodeDisplay" style="font-size:12px; color:#8a5169; margin-bottom:12px;"></div>
+        <div id="membersInfo" style="margin-bottom:12px;"></div>
+        <button id="leaveRoomBtn" class="btn-danger">Leave Room</button>
+      </div>
+    </div>
+
+    <!-- Available Rooms List -->
+    <div class="rooms-section">
+      <h3>🌍 Available Rooms</h3>
+      <div id="roomsList" class="rooms-list">
+        <!-- Populated by JS -->
+      </div>
+    </div>
+  </div>
 
   <main class="grid">
     <section class="card">
@@ -39,6 +109,33 @@
           <button id="pomodoroTaskBtn">✨ Set</button>
         </div>
         <div id="pomodoroTaskDisplay" class="pomo-task-display">No task selected</div>
+      </div>
+
+      <!-- Session Type & Timer Display -->
+      <div id="pomodoroSessionInfo" class="pomo-session-info">
+        <span id="pomodoroPhase" class="pomo-phase-label">🎯 Work Session (25 min)</span>
+        <div id="pomodoroSessionCount" class="pomo-session-count">Session 1</div>
+      </div>
+
+      <!-- Circle Timer Display -->
+      <div class="timer-circle" id="timerCircle">
+        <div class="timer-display">
+          <div class="timer-time" id="studyDisplay">25:00</div>
+          <div class="timer-label" id="timerLabel">Focus Time</div>
+        </div>
+      </div>
+
+      <!-- Timer Controls -->
+      <div class="controls">
+        <button id="studyStart">▶️ Start</button>
+        <button id="studyPause">⏸ Pause</button>
+        <button id="studyReset">↻ Reset</button>
+      </div>
+
+
+      <!-- Task Done & Break Button -->
+      <div class="controls" style="margin-top: 8px;">
+        <button id="pomodoroTaskDone" class="btn-success" style="flex: 1;">✓ Task Done</button>
       </div>
 
       <!-- Cat Display -->
@@ -109,22 +206,6 @@
             <div class="pixel tail"></div>
           </div>
         </div>
-      </div>
-
-      <!-- Session Type & Timer Display -->
-      <div id="pomodoroSessionInfo" class="pomo-session-info">
-        <span id="pomodoroPhase" class="pomo-phase-label">🎯 Work Session</span>
-        <div id="pomodoroSessionCount" class="pomo-session-count">Session 1</div>
-      </div>
-      
-      <div class="big-timer" id="studyDisplay">30:00</div>
-
-      <!-- Timer Controls -->
-      <div class="controls">
-        <button id="studyStart">▶️ Start</button>
-        <button id="studyPause">⏸ Pause</button>
-        <button id="studyReset">↻ Reset</button>
-        <button id="pomodoroTaskDone" class="btn-success">✓ Done</button>
       </div>
 
       <!-- Pomodoro Progress -->
@@ -253,10 +334,88 @@
     </section>
 
     <section class="card">
-      <h2>Exam Prep Checklist</h2>
-      <div id="examList" class="list"></div>
-      <div class="controls">
-        <button id="addExamSample">Add Sample Plan</button>
+      <h2>Exam Prep Checklist 🌟</h2>
+      <div id="examPrepContainer" class="exam-prep-container">
+        <!-- Subjects Section -->
+        <div class="exam-section">
+          <h3>📚 Subjects</h3>
+          <div class="exam-items">
+            <label class="exam-check"><input type="checkbox" class="exam-checkbox"> Complete syllabus breakdown</label>
+            <label class="exam-check"><input type="checkbox" class="exam-checkbox"> Prioritize high-weight topics</label>
+            <label class="exam-check"><input type="checkbox" class="exam-checkbox"> Color-code subjects</label>
+          </div>
+        </div>
+
+        <!-- Resources Section -->
+        <div class="exam-section">
+          <h3>📖 Resources</h3>
+          <div class="exam-items">
+            <label class="exam-check"><input type="checkbox" class="exam-checkbox"> Gather textbooks and notes</label>
+            <label class="exam-check"><input type="checkbox" class="exam-checkbox"> Download PDFs and guides</label>
+            <label class="exam-check"><input type="checkbox" class="exam-checkbox"> Bookmark online resources</label>
+          </div>
+        </div>
+
+        <!-- Practice Section -->
+        <div class="exam-section">
+          <h3>✏️ Practice</h3>
+          <div class="exam-items">
+            <label class="exam-check"><input type="checkbox" class="exam-checkbox"> Solve daily practice questions</label>
+            <label class="exam-check"><input type="checkbox" class="exam-checkbox"> Attempt mock tests</label>
+            <label class="exam-check"><input type="checkbox" class="exam-checkbox"> Review past year papers</label>
+          </div>
+        </div>
+
+        <!-- Revision Section -->
+        <div class="exam-section">
+          <h3>🔄 Revision</h3>
+          <div class="exam-items">
+            <label class="exam-check"><input type="checkbox" class="exam-checkbox"> Schedule weekly reviews</label>
+            <label class="exam-check"><input type="checkbox" class="exam-checkbox"> Create flashcards</label>
+            <label class="exam-check"><input type="checkbox" class="exam-checkbox"> Focus on weak areas</label>
+          </div>
+        </div>
+
+        <!-- Schedule Section -->
+        <div class="exam-section">
+          <h3>📅 Schedule</h3>
+          <div class="exam-items">
+            <label class="exam-check"><input type="checkbox" class="exam-checkbox"> Build a daily timetable</label>
+            <label class="exam-check"><input type="checkbox" class="exam-checkbox"> Use Pomodoro blocks</label>
+            <label class="exam-check"><input type="checkbox" class="exam-checkbox"> Track countdown to exam</label>
+          </div>
+        </div>
+
+        <!-- Self-Care Section -->
+        <div class="exam-section">
+          <h3>💚 Self-Care</h3>
+          <div class="exam-items">
+            <label class="exam-check"><input type="checkbox" class="exam-checkbox"> Maintain sleep routine</label>
+            <label class="exam-check"><input type="checkbox" class="exam-checkbox"> Include breaks & hobbies</label>
+            <label class="exam-check"><input type="checkbox" class="exam-checkbox"> Eat balanced meals</label>
+          </div>
+        </div>
+
+        <!-- Motivation Section -->
+        <div class="exam-section">
+          <h3>⭐ Motivation</h3>
+          <div class="exam-items">
+            <label class="exam-check"><input type="checkbox" class="exam-checkbox"> Add daily affirmations</label>
+            <label class="exam-check"><input type="checkbox" class="exam-checkbox"> Celebrate milestones</label>
+            <label class="exam-check"><input type="checkbox" class="exam-checkbox"> Track progress visually</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="exam-actions" style="margin-top: 16px; display: flex; gap: 8px;">
+        <button id="resetExamChecklistBtn" class="btn-secondary" style="flex: 1;">Reset All</button>
+        <button id="showExamProgressBtn" class="btn-primary" style="flex: 1;">Show Progress</button>
+      </div>
+      <div id="examProgress" style="margin-top: 12px; padding: 12px; background: rgba(255,182,213,0.15); border-radius: 8px; text-align: center; display: none;">
+        <strong id="examProgressText">0% Complete</strong>
+        <div style="margin-top: 8px; height: 8px; background: rgba(255,182,213,0.3); border-radius: 4px; overflow: hidden;">
+          <div id="examProgressBar" style="height: 100%; background: #ff6b9d; width: 0%; transition: width 0.3s ease;"></div>
+        </div>
       </div>
     </section>
   </main>
@@ -373,6 +532,14 @@
           <p>Logged in as: <strong id="currentUserDisplay">Guest</strong></p>
         </div>
         <button id="logoutBtn" class="btn-danger">Logout</button>
+      </div>
+
+      <div class="settings-section">
+        <h3>💾 Data Management</h3>
+        <p style="font-size:13px;color:#8a5169;margin-bottom:12px;">Export and backup your study data, or restore from a backup.</p>
+        <button id="exportDataBtn" class="btn-secondary" style="width:100%;margin-bottom:8px;">📥 Export Data Backup</button>
+        <button id="importDataBtn" class="btn-secondary" style="width:100%;">📤 Import Data Backup</button>
+        <input type="file" id="importFileInput" accept=".json" style="display:none;" />
       </div>
 
       <div class="settings-actions">
