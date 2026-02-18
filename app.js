@@ -2,6 +2,12 @@
 const qs = s => document.querySelector(s);
 const qsa = s => document.querySelectorAll(s);
 
+// Wait for DOM to be ready
+document.addEventListener('DOMContentLoaded', initializeApp);
+
+function initializeApp() {
+  console.log('Initializing dolludy app...');
+
 /* ---------- Timer Class ---------- */
 class Timer {
   constructor(displayEl, seconds=1500, storageKey=null){
@@ -10,6 +16,7 @@ class Timer {
     this.remaining = seconds;
     this.interval = null;
     this.storageKey = storageKey;
+    this.onTick = null; // Callback for each tick
   }
   start(cb){
     if(this.interval) return;
@@ -18,6 +25,7 @@ class Timer {
       this.remaining--;
       this.updateDisplay();
       this.saveState();
+      if(this.onTick) this.onTick(); // Call tick callback
     };
     this.interval = setInterval(tick,1000);
   }
@@ -59,8 +67,11 @@ const savePomodoroState = () => {
 
 // Initialize main study timer for pomodoro
 const studyDisplay = qs('#studyDisplay');
-const studyTimer = new Timer(studyDisplay, 30*60, 'beauty_study_timer'); // 30 min work
+const studyTimer = new Timer(studyDisplay, 25*60, 'beauty_study_timer'); // 25 min work
 studyTimer.restoreState();
+
+// Track total time for progress bar
+let pomodoroTotalTime = 25 * 60;
 
 const catEl = qs('#studyCat');
 
@@ -68,6 +79,8 @@ const updatePomodoroDisplay = () => {
   const taskDisplay = qs('#pomodoroTaskDisplay');
   const phaseLabel = qs('#pomodoroPhase');
   const sessionCount = qs('#pomodoroSessionCount');
+  const timerCircle = qs('#timerCircle');
+  const timerLabel = qs('#timerLabel');
   
   if(pomodoroState.task) {
     taskDisplay.textContent = `📋 ${pomodoroState.task}`;
@@ -76,14 +89,24 @@ const updatePomodoroDisplay = () => {
   }
   
   const isWork = pomodoroState.isWorkSession;
-  phaseLabel.textContent = isWork ? '🎯 Work Session (30 min)' : '☕ Break Time (5 min)';
+  phaseLabel.textContent = isWork ? '🎯 Work Session (25 min)' : '☕ Break Time (5 min)';
   phaseLabel.style.color = isWork ? '#ff6b9d' : '#00bcd4';
+  
+  // Update timer circle styling
+  if(isWork) {
+    timerCircle.classList.remove('break-mode');
+    timerLabel.textContent = 'Focus Time';
+  } else {
+    timerCircle.classList.add('break-mode');
+    timerLabel.textContent = 'Break Time';
+  }
   
   sessionCount.textContent = `Session ${pomodoroState.sessionCount + 1}`;
   
   updatePomodoroStats();
 };
 
+// bow removed: no-op removed
 const updatePomodoroStats = () => {
   const today = new Date().toDateString();
   const sessionsStorage = localStorage.getItem(pomodoroSessionsKey);
@@ -124,19 +147,21 @@ const transitionToNextPhase = () => {
     // Transitioning to break
     pomodoroState.isWorkSession = false;
     studyTimer.set(5 * 60); // 5 min break
+    pomodoroTotalTime = 5 * 60; // Update total time for progress bar
     updatePomodoroDisplay();
     catEl.classList.remove('studying');
     catEl.classList.add('dancing');
-    alert('Work session done! Take a 5 minute break 🎉');
+    showNotification(`✨ Work session complete! Enjoy your 5-minute break! ☕`);
   } else {
     // After break, go back to work
     pomodoroState.sessionCount++;
     pomodoroState.isWorkSession = true;
-    studyTimer.set(30 * 60); // 30 min work
+    studyTimer.set(25 * 60); // 25 min work
+    pomodoroTotalTime = 25 * 60; // Update total time for progress bar
     updatePomodoroDisplay();
     catEl.classList.remove('dancing');
     catEl.classList.add('studying');
-    alert('Break over! Ready for another 30 minute work session? 💪');
+    showNotification(`🎯 Break over! Ready for session ${pomodoroState.sessionCount + 1}? Let's go! 💪`);
   }
   
   savePomodoroState();
@@ -172,13 +197,20 @@ const renderPomodoroTaskList = () => {
 };
 
 const selectTaskForPomodoro = (taskIdx) => {
+  if (!tasks || !tasks[taskIdx]) {
+    showNotification('Task not found!', 'error');
+    return;
+  }
   pomodoroState.taskIndex = taskIdx;
   const task = tasks[taskIdx];
   pomodoroState.task = task.text;
   pomodoroState.sessionCount = 0;
+  pomodoroState.isWorkSession = true;
+  studyTimer.set(25 * 60); // Reset to 25 min work session
   savePomodoroState();
   updatePomodoroDisplay();
   renderPomodoroTaskList();
+  showNotification(`✨ Selected: "${task.text}". Ready to start?`);
 };
 
 qs('#pomodoroTaskBtn').addEventListener('click', () => {
@@ -188,12 +220,29 @@ qs('#pomodoroTaskBtn').addEventListener('click', () => {
     alert('Please enter a task name');
     return;
   }
+  
+  // Add to tasks array if not already there
+  const existingIdx = tasks.findIndex(t => t.text.toLowerCase() === taskText.toLowerCase());
+  let taskIdx;
+  if(existingIdx >= 0) {
+    taskIdx = existingIdx;
+  } else {
+    tasks.push({text: taskText, done: false, due: ''});
+    saveTasks();
+    taskIdx = tasks.length - 1;
+  }
+  
   pomodoroState.task = taskText;
+  pomodoroState.taskIndex = taskIdx;
   pomodoroState.sessionCount = 0;
+  pomodoroState.isWorkSession = true;
+  studyTimer.set(25 * 60); // Reset to 25 min work session
+  pomodoroTotalTime = 25 * 60; // Ensure bow progress tracking is correct
   savePomodoroState();
   updatePomodoroDisplay();
+  renderPomodoroTaskList();
   taskInput.value = '';
-  alert(`Task "${taskText}" set! Now click Start to begin your first 30-minute work session 🚀`);
+  showNotification(`Task "${taskText}" set! ✨ Ready to start?`);
 });
 
 // Allow Enter key in task input
@@ -204,28 +253,27 @@ qs('#pomodoroTaskInput').addEventListener('keypress', (e) => {
 // Task done button (gives 30 min break)
 qs('#pomodoroTaskDone').addEventListener('click', () => {
   if(!pomodoroState.task) {
-    alert('Please set a task first');
+    showNotification('Please set a task first!', 'error');
     return;
   }
   studyTimer.pause();
   if(pomodoroState.isWorkSession) {
     recordPomodoroSession(true, Math.floor(studyTimer.initial / 60));
   }
+  
   // Mark task as done in the task list if it's from the list
   const taskIdx = pomodoroState.taskIndex;
-  if(taskIdx !== null && tasks[taskIdx]) {
+  if(taskIdx !== null && tasks && tasks[taskIdx]) {
     tasks[taskIdx].done = true;
     saveTasks();
     renderTasks();
     renderPomodoroTaskList();
-    recordStudySession(30); // Record 30 min study session
-    updateProgressDashboard();
   }
+  
   pomodoroState.isWorkSession = false;
   studyTimer.set(30 * 60); // 30 min break
   updatePomodoroDisplay();
   catEl.classList.add('dancing');
-  alert(`🎉 Task "${pomodoroState.task}" completed! Enjoy your 30-minute break!`);
   savePomodoroState();
 });
 
@@ -245,33 +293,55 @@ const updateCatState = () => {
 
 qs('#studyStart').addEventListener('click', () => {
   if(!pomodoroState.task) {
-    alert('Please set a task first');
+    showNotification('Please set a task first!', 'error');
     return;
   }
+  // Ensure pomodoroTotalTime is set correctly for progress bar
+  pomodoroTotalTime = pomodoroState.isWorkSession ? 25 * 60 : 5 * 60;
   studyTimer.start(() => {
     transitionToNextPhase();
   });
   updateCatState();
+  showNotification(`Timer started! Focus for ${pomodoroState.isWorkSession ? 25 : 5} minutes 🎯`);
 });
 
 qs('#studyPause').addEventListener('click', () => {
-  studyTimer.pause();
-  catEl.classList.remove('studying', 'dancing');
+  if(studyTimer.interval) {
+    // Timer is running, pause it
+    studyTimer.pause();
+    catEl.classList.remove('studying', 'dancing');
+    showNotification('Timer paused ⏸');
+  } else {
+    // Timer is paused, resume it
+    studyTimer.start(() => {
+      transitionToNextPhase();
+    });
+    updateCatState();
+    showNotification('Timer resumed! ▶️');
+  }
 });
 
 qs('#studyReset').addEventListener('click', () => {
-  studyTimer.reset();
+  studyTimer.pause();
   if(pomodoroState.isWorkSession) {
-    studyTimer.set(30 * 60);
+    studyTimer.set(25 * 60); // Reset to 25 min
+    pomodoroTotalTime = 25 * 60;
   } else {
-    studyTimer.set(5 * 60);
+    studyTimer.set(5 * 60); // Reset to 5 min
+    pomodoroTotalTime = 5 * 60;
   }
+  studyTimer.updateDisplay();
   catEl.classList.remove('studying', 'dancing');
+  showNotification('Timer reset! 🔄');
 });
 
 loadPomodoroState();
-renderPomodoroTaskList();
 studyTimer.updateDisplay();
+
+// Initialize tasks early so renderPomodoroTaskList can be called
+const tasksKey = 'beauty_tasks_v1';
+let tasks = JSON.parse(localStorage.getItem(tasksKey) || '[]');
+renderPomodoroTaskList();
 
 /* ---------- Small timers: skincare & sleep ---------- */
 const skincareDisplay = qs('#skincareDisplay');
@@ -305,6 +375,7 @@ const updateSkincareDisplay = () => {
 };
 qs('#skincareMinutes').addEventListener('change', e => {
   skincareMinutes = parseInt(e.target.value, 10) || 3;
+  console.log('skincareMinutes changed:', skincareMinutes);
   updateSkincareDisplay();
   saveSkincare();
 });
@@ -339,8 +410,20 @@ const waterKey = 'beauty_water_count';
 const waterCount = qs('#waterCount');
 let water = parseInt(localStorage.getItem(waterKey) || '0',10);
 const renderWater = ()=> waterCount.textContent = water;
-qs('#waterInc').addEventListener('click', ()=>{ water++; localStorage.setItem(waterKey,water); renderWater(); updateProgressDashboard(); });
-qs('#waterDec').addEventListener('click', ()=>{ if(water>0) water--; localStorage.setItem(waterKey,water); renderWater(); updateProgressDashboard(); });
+qs('#waterInc').addEventListener('click', ()=>{
+  water++;
+  localStorage.setItem(waterKey, water);
+  console.log('waterInc clicked, new water:', water);
+  renderWater();
+  updateProgressDashboard();
+});
+qs('#waterDec').addEventListener('click', ()=>{
+  if(water>0) water--;
+  localStorage.setItem(waterKey, water);
+  console.log('waterDec clicked, new water:', water);
+  renderWater();
+  updateProgressDashboard();
+});
 renderWater();
 
 /* ---------- Workout generator ---------- */
@@ -358,41 +441,240 @@ qs('#genWorkout').addEventListener('click', ()=>{
 /* ---------- Tasks & persistence ---------- */
 const taskForm = qs('#taskForm');
 const taskListEl = qs('#taskList');
-const tasksKey = 'beauty_tasks_v1';
-let tasks = JSON.parse(localStorage.getItem(tasksKey) || '[]');
-function renderTasks(){ taskListEl.innerHTML=''; tasks.forEach((t,idx)=>{
-  const li = document.createElement('li');
-  li.innerHTML = `<div><strong>${t.text}</strong>${t.due?` • ${t.due}`:''}</div><div><button data-i="${idx}" class="done">✓</button> <button data-i="${idx}" class="del">✕</button></div>`;
-  taskListEl.appendChild(li);
-});
-  qsa('.del').forEach(b=>b.addEventListener('click', e=>{ const i=e.target.dataset.i; tasks.splice(i,1); saveTasks(); renderTasks(); renderPomodoroTaskList(); updateProgressDashboard(); }));
-  qsa('.done').forEach(b=>b.addEventListener('click', e=>{ const i=e.target.dataset.i; tasks[i].done = !tasks[i].done; saveTasks(); renderTasks(); renderPomodoroTaskList(); updateProgressDashboard(); }));
+// tasks and tasksKey already initialized earlier
+function renderTasks(){
+  taskListEl.innerHTML='';
+  tasks.forEach((t,idx)=>{
+    const li = document.createElement('li');
+    li.className = t.done ? 'completed' : '';
+    li.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" class="task-complete" data-i="${idx}" ${t.done ? 'checked' : ''} aria-label="Mark task complete" />
+        <div style="flex:1">
+          <strong>${t.text}</strong>${t.due?` • ${t.due}`:''}
+        </div>
+      </div>
+      <div>
+        <button data-i="${idx}" class="del">✕</button>
+      </div>
+    `;
+    taskListEl.appendChild(li);
+  });
+
+  // Attach listeners after rendering
+  qsa('.del').forEach(b=>{
+    b.addEventListener('click', e=>{
+      const i = parseInt(e.target.dataset.i, 10);
+      if (isNaN(i)) return;
+      tasks.splice(i,1);
+      saveTasks();
+      renderTasks();
+      renderPomodoroTaskList();
+      updateProgressDashboard();
+    });
+  });
+
+  qsa('.task-complete').forEach(chk=>{
+    chk.addEventListener('change', e=>{
+      const i = parseInt(e.target.dataset.i, 10);
+      if (isNaN(i) || !tasks[i]) return;
+      tasks[i].done = e.target.checked;
+      saveTasks();
+      renderTasks();
+      renderPomodoroTaskList();
+      updateProgressDashboard();
+    });
+  });
+
   renderPomodoroTaskList();
 }
 function saveTasks(){ localStorage.setItem(tasksKey, JSON.stringify(tasks)); }
-taskForm.addEventListener('submit', e=>{ e.preventDefault(); const text = qs('#taskText').value.trim(); const due = qs('#taskDue').value; if(!text) return; tasks.push({text,due,done:false}); saveTasks(); renderTasks(); taskForm.reset(); });
+taskForm.addEventListener('submit', e=>{
+  e.preventDefault();
+  const text = qs('#taskText').value.trim();
+  const due = qs('#taskDue').value;
+  console.log('taskForm submit:', {text, due});
+  if(!text) return;
+  tasks.push({text,due,done:false});
+  saveTasks();
+  renderTasks();
+  taskForm.reset();
+});
 renderTasks();
 
-/* ---------- Exam prep sample ---------- */
-const examListEl = qs('#examList');
-const addExamSample = qs('#addExamSample');
-addExamSample.addEventListener('click', ()=>{
-  examListEl.innerHTML = '';
-  const items = ['Syllabus map','Create flashcards','Practice past papers','Timed mock exam','Review weak topics'];
-  items.forEach((it,i)=>{
-    const row = document.createElement('div'); row.className='examRow'; row.style.padding='8px'; row.style.background='rgba(255,255,255,0.6)'; row.style.marginBottom='8px'; row.style.borderRadius='8px';
-    row.innerHTML = `<label><input type="checkbox" ${i===0?'checked':''}/> ${it}</label>`;
-    examListEl.appendChild(row);
+/* ---------- Exam Prep Checklist ---------- */
+const examChecklistKey = 'dolludy_exam_checklist';
+
+const initializeExamChecklist = () => {
+  const saved = localStorage.getItem(examChecklistKey);
+  if (saved) {
+    const checkboxes = qsa('.exam-checkbox');
+    const states = JSON.parse(saved);
+    checkboxes.forEach((checkbox, idx) => {
+      if (states[idx]) checkbox.checked = true;
+    });
+  }
+};
+
+const saveExamChecklist = () => {
+  const checkboxes = qsa('.exam-checkbox');
+  const states = Array.from(checkboxes).map(cb => cb.checked);
+  localStorage.setItem(examChecklistKey, JSON.stringify(states));
+};
+
+const updateExamProgress = () => {
+  const checkboxes = qsa('.exam-checkbox');
+  const checked = Array.from(checkboxes).filter(cb => cb.checked).length;
+  const total = checkboxes.length;
+  const percentage = Math.round((checked / total) * 100);
+  
+  qs('#examProgressText').textContent = `${percentage}% Complete (${checked}/${total})`;
+  qs('#examProgressBar').style.width = `${percentage}%`;
+};
+
+// Add event listeners to all exam checkboxes
+qsa('.exam-checkbox').forEach(checkbox => {
+  checkbox.addEventListener('change', () => {
+    saveExamChecklist();
+    updateExamProgress();
   });
 });
 
-/* ---------- Theme toggle (cute) ---------- */
+// Reset button
+qs('#resetExamChecklistBtn').addEventListener('click', () => {
+  if (confirm('Reset all exam prep items?')) {
+    qsa('.exam-checkbox').forEach(checkbox => checkbox.checked = false);
+    saveExamChecklist();
+    updateExamProgress();
+    qs('#examProgress').style.display = 'none';
+    showNotification('Exam checklist reset! 🔄');
+  }
+});
+
+// Show progress button
+qs('#showExamProgressBtn').addEventListener('click', () => {
+  const progress = qs('#examProgress');
+  if (progress.style.display === 'none') {
+    updateExamProgress();
+    progress.style.display = 'block';
+    showNotification('Progress shown! Keep going! 💪');
+  } else {
+    progress.style.display = 'none';
+  }
+});
+
+// Initialize exam checklist on load
+initializeExamChecklist();
+updateExamProgress();
+
+/* ---------- Exam Prep Checklist ---------- */
 qs('#themeToggle').addEventListener('click', ()=>{
   document.documentElement.style.setProperty('--accent', document.documentElement.style.getPropertyValue('--accent')? '#ffb6d5' : '#ffd1e8');
 });
 
 // initial displays
 studyTimer.updateDisplay(); smallTimers.skincare.updateDisplay(); smallTimers.sleep.updateDisplay();
+
+/* ---------- Data Export/Import ---------- */
+const exportAppData = () => {
+  const appData = {
+    exportDate: new Date().toISOString(),
+    version: '1.0',
+    data: {}
+  };
+
+  // Collect all app-related localStorage keys
+  const keysToExport = [
+    'beauty_tasks_v1',
+    'beauty_pomodoro_v1',
+    'beauty_pomodoro_task',
+    'beauty_pomodoro_sessions',
+    'beauty_water_count',
+    'beauty_water_date',
+    'beauty_streaks_v1',
+    'beauty_study_sessions_v1',
+    'beautyStudyUser',
+    'beauty_study_timer',
+    'dolludy_exam_checklist',
+    'beautySmallTimers',
+    'beautyTheme'
+  ];
+
+  keysToExport.forEach(key => {
+    const value = localStorage.getItem(key);
+    if (value) {
+      appData.data[key] = value;
+    }
+  });
+
+  return appData;
+};
+
+const downloadAppData = () => {
+  const appData = exportAppData();
+  const jsonString = JSON.stringify(appData, null, 2);
+  const blob = new Blob([jsonString], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `dolludy_backup_${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showNotification('✅ Data exported successfully!');
+};
+
+const importAppData = (jsonString) => {
+  try {
+    const appData = JSON.parse(jsonString);
+    
+    if (!appData.data) {
+      showNotification('❌ Invalid backup file format', 'error');
+      return false;
+    }
+
+    Object.entries(appData.data).forEach(([key, value]) => {
+      localStorage.setItem(key, value);
+    });
+
+    showNotification('✅ Data imported successfully! Refreshing...');
+    setTimeout(() => window.location.reload(), 1000);
+    return true;
+  } catch (e) {
+    showNotification('❌ Error importing data: ' + e.message, 'error');
+    return false;
+  }
+};
+
+// Add export button event listener
+const exportBtnEl = qs('#exportDataBtn');
+if (exportBtnEl) {
+  exportBtnEl.addEventListener('click', downloadAppData);
+}
+
+// Add import handler
+const importFileInput = qs('#importFileInput');
+if (importFileInput) {
+  importFileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      importAppData(event.target.result);
+    };
+    reader.readAsText(file);
+  });
+}
+
+// Add import button click handler
+const importBtnEl = qs('#importDataBtn');
+if (importBtnEl) {
+  importBtnEl.addEventListener('click', () => {
+    qs('#importFileInput').click();
+  });
+}
 
 // Reset water count daily
 const waterDateKey = 'beauty_water_date';
@@ -406,7 +688,28 @@ if(localStorage.getItem(waterDateKey) !== today){
 
 /* ---------- Daily Streaks ---------- */
 const streaksKey = 'beauty_streaks_v1';
-let streaks = JSON.parse(localStorage.getItem(streaksKey) || '{"skincare":{"count":0,"lastDate":""},"water":{"count":0,"lastDate":""}}');
+// Initialize study-focused streaks with proper structure
+const initializeStreaks = () => {
+  const defaults = {
+    study: { count: 0, lastDate: "" },
+    anki_make: { count: 0, lastDate: "" },
+    anki_review: { count: 0, lastDate: "" }
+  };
+  
+  let saved = JSON.parse(localStorage.getItem(streaksKey) || '{}');
+  
+  // Ensure all streak types exist
+  Object.keys(defaults).forEach(key => {
+    if(!saved[key]) {
+      saved[key] = defaults[key];
+    }
+  });
+  
+  localStorage.setItem(streaksKey, JSON.stringify(saved));
+  return saved;
+};
+
+let streaks = initializeStreaks();
 
 const saveStreaks = () => localStorage.setItem(streaksKey, JSON.stringify(streaks));
 
@@ -434,47 +737,67 @@ const updateStreak = (streakType) => {
 const renderStreaks = () => {
   const streaksEl = qs('#streaksList');
   streaksEl.innerHTML = '';
-  
-  Object.keys(streaks).forEach(key => {
+
+  const labelMap = {
+    study: '📚 Study',
+    anki_make: '🧩 Anki: Make Cards',
+    anki_review: '🔁 Anki: Review Cards'
+  };
+
+  // order we want to show streaks
+  const order = ['study', 'anki_make', 'anki_review'];
+
+  order.forEach(key => {
+    if (!streaks[key]) return;
     const s = streaks[key];
-    const label = key === 'skincare' ? '🧴 Skincare' : '💧 Water (8+ glasses)';
-    const div = document.createElement('div');
-    div.className = 'streak-item';
-    div.innerHTML = `
-      <div class="streak-info">
-        <span class="streak-name">${label}</span>
-        <div class="streak-count">🔥 ${s.count} days</div>
-      </div>
-      <button class="streak-btn" data-type="${key}">Log Today</button>
-    `;
-    streaksEl.appendChild(div);
+
+    const item = document.createElement('div');
+    item.className = 'streak-item';
+
+    const info = document.createElement('div');
+    info.className = 'streak-info';
+
+    const name = document.createElement('span');
+    name.className = 'streak-name';
+    name.textContent = labelMap[key] || key;
+
+    const count = document.createElement('div');
+    count.className = 'streak-count';
+    count.textContent = `${s.count} day${s.count === 1 ? '' : 's'}`;
+
+    const last = document.createElement('div');
+    last.className = 'streak-last';
+    last.textContent = s.lastDate || '—';
+
+    info.appendChild(name);
+    info.appendChild(count);
+    info.appendChild(last);
+
+    const action = document.createElement('div');
+    const btn = document.createElement('button');
+    btn.className = 'streak-btn';
+    btn.dataset.type = key;
+    btn.textContent = 'Log Today';
+    action.appendChild(btn);
+
+    item.appendChild(info);
+    item.appendChild(action);
+
+    streaksEl.appendChild(item);
   });
-  
+
+  // Attach listeners
   qsa('.streak-btn').forEach(btn => {
     btn.addEventListener('click', e => {
-      const type = e.target.dataset.type;
+      const type = e.currentTarget.dataset.type;
       updateStreak(type);
-      e.target.textContent = '✓ Done';
+      e.currentTarget.textContent = '✓ Done';
       setTimeout(() => { renderStreaks(); }, 500);
     });
   });
 };
 
-// Auto-log skincare completion
-const originalStartSkincare = qs('#startSkincare').onclick;
-qs('#startSkincare').addEventListener('click', function() {
-  if(this.__originalHandler) this.__originalHandler();
-  // Will log on completion via alert callback
-});
-
-// Hook into water tracker
-const originalWaterInc = qs('#waterInc').onclick;
-const waterGoal = 8;
-qs('#waterInc').addEventListener('click', function() {
-  if(water >= waterGoal && water < waterGoal + 1) {
-    updateStreak('water');
-  }
-});
+// water/skincare removed from streaks — now study-focused
 
 renderStreaks();
 
@@ -552,7 +875,7 @@ updateProgressDashboard();
 /* ---------- User Auth & Settings System ---------- */
 const userKey = 'beauty_user_v1';
 const settingsKey = 'beauty_settings_v1';
-let currentUser = null;
+let currentUser = JSON.parse(localStorage.getItem('beautyStudyUser')) || { id: null, name: null };
 
 const defaultSettings = {
   workDuration: 30,
@@ -808,4 +1131,276 @@ if(currentUser) {
 } else {
   openModal('loginModal');
 }
+
+/* ============ LIVE STUDY ROOMS - Socket.io Integration ============ */
+
+// Load Socket.io library
+const script = document.createElement('script');
+script.src = 'https://cdn.socket.io/4.5.4/socket.io.min.js';
+document.head.appendChild(script);
+
+let socket = null;
+// currentUser already declared earlier
+let currentRoomId = null;
+let roomTimerInterval = null;
+
+script.onload = () => {
+  socket = io('http://localhost:3000');
+  
+  // Initialize user on connection
+  socket.on('connect', () => {
+    console.log('Connected to Beauty Study Live');
+    if (!currentUser.id) {
+      currentUser.id = 'user_' + Date.now();
+      localStorage.setItem('beautyStudyUser', JSON.stringify(currentUser));
+    }
+    socket.emit('user:init', {
+      userId: currentUser.id,
+      name: currentUser.name || 'Anonymous'
+    });
+  });
+
+  // Receive user ready confirmation
+  socket.on('user:ready', (data) => {
+    currentUser.id = data.userId;
+    localStorage.setItem('beautyStudyUser', JSON.stringify(currentUser));
+    console.log('User ID assigned:', data.userId);
+  });
+
+  // Room created
+  socket.on('room:created', (data) => {
+    currentRoomId = data.roomId;
+    updateCurrentRoomDisplay(data.room);
+    showRoomPanel();
+  });
+
+  // Room joined
+  socket.on('room:joined', (data) => {
+    currentRoomId = data.roomId;
+    updateCurrentRoomDisplay(data.room);
+    showRoomPanel();
+  });
+
+  // Member joined
+  socket.on('member:joined', (data) => {
+    updateCurrentRoomDisplay({ ...data, id: currentRoomId });
+    showNotification(`${data.member.name} joined the room! 👋`);
+  });
+
+  // Member left
+  socket.on('member:left', (data) => {
+    updateCurrentRoomDisplay({ members: data.members, id: currentRoomId });
+  });
+
+  // Member status update
+  socket.on('member:status', (data) => {
+    updateCurrentRoomDisplay({ members: data.members, id: currentRoomId });
+  });
+
+  // Timer events
+  socket.on('timer:started', (data) => {
+    showNotification(`${data.startedBy} started studying! 🎯`);
+    syncTimerWithRoom(data.timerState);
+  });
+
+  socket.on('timer:paused', (data) => {
+    if (roomTimerInterval) clearInterval(roomTimerInterval);
+  });
+
+  socket.on('timer:update', (data) => {
+    updateRoomTimer(data.timerState);
+  });
+
+  socket.on('timer:finished', (data) => {
+    showNotification('Session finished! Great work! 🎉');
+  });
+
+  // Room list
+  socket.on('room:list', (data) => {
+    updateRoomsList(data.rooms);
+  });
+
+  socket.on('room:list:updated', (data) => {
+    updateRoomsList(data.rooms);
+  });
+
+  // Error handling
+  socket.on('error', (data) => {
+    showNotification(`Error: ${data.message}`, 'error');
+  });
+};
+
+// UI Functions for Rooms Panel
+const roomsPanel = qs('#roomsPanel');
+const roomsToggle = qs('#roomsToggle');
+const closeRoomsBtn = qs('#closeRoomsBtn');
+
+roomsToggle.addEventListener('click', () => {
+  roomsPanel.classList.toggle('active');
+});
+
+closeRoomsBtn.addEventListener('click', () => {
+  roomsPanel.classList.remove('active');
+});
+
+// Set user name
+qs('#setUserBtn').addEventListener('click', () => {
+  const nameInput = qs('#userNameInput');
+  if (nameInput.value.trim()) {
+    currentUser.name = nameInput.value.trim();
+    localStorage.setItem('beautyStudyUser', JSON.stringify(currentUser));
+    if (socket) {
+      socket.emit('user:init', { userId: currentUser.id, name: currentUser.name });
+    }
+    showNotification(`Welcome, ${currentUser.name}! 🌸`);
+    nameInput.value = '';
+  }
+});
+
+// Create room
+qs('#createRoomBtn').addEventListener('click', () => {
+  const roomName = qs('#roomNameInput').value.trim();
+  if (roomName && socket) {
+    socket.emit('room:create', { roomName });
+    qs('#roomNameInput').value = '';
+  } else {
+    showNotification('Please enter a room name', 'error');
+  }
+});
+
+// Join room by code
+qs('#joinRoomBtn').addEventListener('click', () => {
+  const inviteCode = qs('#inviteCodeInput').value.trim().toUpperCase();
+  if (inviteCode && socket) {
+    socket.emit('room:join', { inviteCode });
+    qs('#inviteCodeInput').value = '';
+  } else {
+    showNotification('Please enter an invite code', 'error');
+  }
+});
+
+// Leave room
+qs('#leaveRoomBtn').addEventListener('click', () => {
+  if (socket && currentRoomId) {
+    socket.emit('room:leave');
+    currentRoomId = null;
+    qs('#currentRoomSection').style.display = 'none';
+    showNotification('You left the room');
+  }
+});
+
+function updateCurrentRoomDisplay(room) {
+  const section = qs('#currentRoomSection');
+  const nameEl = qs('#currentRoomName');
+  const codeEl = qs('#inviteCodeDisplay');
+  const membersEl = qs('#membersInfo');
+
+  if (room.name) {
+    nameEl.textContent = room.name;
+  }
+  
+  if (room.inviteCode) {
+    codeEl.innerHTML = `<strong>Invite Code:</strong> <code style="background:white; padding:2px 6px; border-radius:4px;">${room.inviteCode}</code>`;
+  }
+
+  if (room.members) {
+    membersEl.innerHTML = `<div style="margin-bottom:8px;"><strong>Members (${room.members.length}):</strong></div>
+      <div class="members-list">
+        ${room.members.map(m => `
+          <div class="member-item">
+            <span class="member-status ${m.status}"></span>
+            <span>${m.name}</span>
+            <span style="margin-left:auto;font-size:10px;color:#8a5169;">${m.status}</span>
+          </div>
+        `).join('')}
+      </div>`;
+  }
+
+  section.style.display = 'block';
+}
+
+function updateRoomsList(rooms) {
+  const list = qs('#roomsList');
+  if (rooms.length === 0) {
+    list.innerHTML = '<p style="font-size:12px;color:#8a5169;">No rooms available yet. Create one!</p>';
+    return;
+  }
+
+  list.innerHTML = rooms.map(room => `
+    <div class="room-item">
+      <div class="room-item-name">${room.name}</div>
+      <div class="room-item-meta">👥 ${room.members.length} ${room.members.length === 1 ? 'member' : 'members'}</div>
+      <div class="room-item-meta">Created ${new Date(room.createdAt).toLocaleTimeString()}</div>
+      <button style="width:100%;margin-top:6px;padding:6px;background:var(--accent);color:white;border:none;border-radius:6px;cursor:pointer;font-size:12px;" onclick="document.getElementById('inviteCodeInput').value='${room.inviteCode}'; document.getElementById('joinRoomBtn').click();">Join with Code: ${room.inviteCode}</button>
+    </div>
+  `).join('');
+}
+
+function showRoomPanel() {
+  roomsPanel.classList.add('active');
+}
+
+function syncTimerWithRoom(timerState) {
+  // Sync the main study timer with room
+  if (roomTimerInterval) clearInterval(roomTimerInterval);
+  
+  roomTimerInterval = setInterval(() => {
+    if (timerState.isRunning && timerState.timeRemaining > 0) {
+      timerState.timeRemaining--;
+      socket.emit('timer:tick', { timeRemaining: timerState.timeRemaining });
+      updateRoomTimer(timerState);
+    }
+  }, 1000);
+}
+
+function updateRoomTimer(timerState) {
+  const m = Math.floor(timerState.timeRemaining / 60).toString().padStart(2, '0');
+  const s = (timerState.timeRemaining % 60).toString().padStart(2, '0');
+  // Update display if needed
+}
+
+function showNotification(message, type = 'info') {
+  const notification = document.createElement('div');
+  notification.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: ${type === 'error' ? '#ff6b6b' : 'var(--accent)'};
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 2000;
+    animation: slideIn 0.3s ease;
+  `;
+  notification.textContent = message;
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    notification.style.animation = 'slideOut 0.3s ease';
+    setTimeout(() => notification.remove(), 300);
+  }, 3000);
+}
+
+// Add CSS animations
+const style = document.createElement('style');
+style.innerHTML = `
+  @keyframes slideIn {
+    from { transform: translateX(-400px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  @keyframes slideOut {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(-400px); opacity: 0; }
+  }
+`;
+document.head.appendChild(style);
+
+// Fetch room list on load
+setTimeout(() => {
+  if (socket) socket.emit('room:list');
+}, 1000);
+
+} // End of initializeApp function
+
 
